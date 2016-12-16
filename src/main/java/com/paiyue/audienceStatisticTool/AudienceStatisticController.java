@@ -18,41 +18,94 @@ public class AudienceStatisticController {
 	 * 查询符合tagStr条件的人群数量
 	 */
 	public Map<String,Object> calculateAudiNum(String tagStr,String type) {
-		
-		if("PC".equalsIgnoreCase(type)){
-			return this.getMatchTagData(new AudienceStatisticService(),tagStr);
-		}else if("IOS".equalsIgnoreCase(type)){
-			return this.getMatchTagData(new AudienceIosStatsServ(),tagStr);
-		}else if("Imei".equalsIgnoreCase(type)){
-			return this.getMatchTagData(new AudienceImeiStatsServ(),tagStr);
-		}else if("App".equalsIgnoreCase(type)){
-			AudienceIosStatsServ aiosss=new AudienceIosStatsServ();
-			AudienceImeiStatsServ aimeiss=new AudienceImeiStatsServ();
-			if(isNotNull(aiosss)==null){
-				return this.getMatchTagData(aimeiss,tagStr);
+		try{
+			if("PC".equalsIgnoreCase(type)){
+				return this.getMatchTagData(new AudienceStatisticService(),tagStr);
+			}else if("IOS".equalsIgnoreCase(type)){
+				return this.getMatchTagData(new AudienceIosStatsServ(),tagStr);
+			}else if("Imei".equalsIgnoreCase(type)){
+				return this.getMatchTagData(new AudienceImeiStatsServ(),tagStr);
+			}else if("App".equalsIgnoreCase(type)){
+				return this.getAppMatchData(new AudienceIosStatsServ(), new AudienceImeiStatsServ(), tagStr);
+			}else if("Moweb".equalsIgnoreCase(type)){//移动web
+				return this.getMatchTagData(new AudienceMobileWebServ(),tagStr);
+			}else if("Mobile".equalsIgnoreCase(type)){//移动端
+				return this.getMobileMatchData(new AudienceIosStatsServ(), new AudienceImeiStatsServ(), new AudienceMobileWebServ(), tagStr);
 			}
-			if(isNotNull(aimeiss)==null){
-				return this.getMatchTagData(aiosss,tagStr);
-			}
-			Map<String,int[]> iosMap=asts.countAudiences2(aiosss.getAudienceTagSum(),aiosss.getAudienceTagList(),aiosss.getAudienceTag(),aiosss.getAudienceTagMap(),tagStr);//统计符合条件的人数，并统计每个标签的数量
-			Map<String,int[]> imeiMap=asts.countAudiences2(aimeiss.getAudienceTagSum(),aimeiss.getAudienceTagList(),aimeiss.getAudienceTag(),aimeiss.getAudienceTagMap(),tagStr);//统计符合条件的人数，并统计每个标签的数量
-			Map<String,int[]> mergeIosImei = merge(iosMap,imeiMap,aiosss.getRate(),aimeiss.getRate());//合并两个中间结果
-			
-//			int iosimeiSamSum=aiosss.getAudienceTagMap().get(Short.parseShort("0"))+aimeiss.getAudienceTagMap().get(Short.parseShort("0"));//ios和imei抽样后数量的和
-			int iosimeiAudiSum=aiosss.getAudiSum()+aimeiss.getAudiSum();//ios和imei抽样前基数的和
-//			float rate=new BigDecimal((iosimeiAudiSum)/((float)1.0*iosimeiSamSum)).setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();//抽样前基数的和/抽样后数量的和
-			Map<String,Object> tagMap=asts.getMatchTagMap(iosimeiAudiSum,mergeIosImei);//将所有标签分类
-			
-			//乘以比例后，就是抽样前的总数，因此直接将iosimeiAudiSum作为样本数传入即可
-			asts.initRate(iosimeiAudiSum,tagMap);
-//			asts.multiRate(rate,tagMap);
-			return put2Map(tagMap);
-			
-		}else{
-			return null;
+		}catch(Exception e){
+			e.printStackTrace();
 		}
+		return null;
 	}
-	
+	/**
+	 * 求ai1和ai2中符合tagStr的数据数量和
+	 * @param ai1
+	 * @param ai2
+	 * @param tagStr
+	 * @return
+	 */
+	public Map<String,Object> getAppMatchData(AudienceInterface ai1,AudienceInterface ai2,String tagStr){
+
+//		AudienceIosStatsServ aiosss=new AudienceIosStatsServ();
+//		AudienceImeiStatsServ aimeiss=new AudienceImeiStatsServ();
+		if(isNotNull(ai1)==null){
+			return this.getMatchTagData(ai2,tagStr);
+		}
+		if(isNotNull(ai2)==null){
+			return this.getMatchTagData(ai1,tagStr);
+		}
+		Map<String,int[]> map1=asts.countAudiences2(ai1.getAudienceTagSum(),ai1.getAudienceTagList(),ai1.getAudienceTag(),ai1.getAudienceTagMap(),tagStr);//统计符合条件的人数，并统计每个标签的数量
+		Map<String,int[]> map2=asts.countAudiences2(ai2.getAudienceTagSum(),ai2.getAudienceTagList(),ai2.getAudienceTag(),ai2.getAudienceTagMap(),tagStr);//统计符合条件的人数，并统计每个标签的数量
+		Map<String,int[]> mergemap = merge(map1,map2,ai1.getRate(),ai2.getRate());//合并两个中间结果
+		
+//		int iosimeiSamSum=aiosss.getAudienceTagMap().get(Short.parseShort("0"))+aimeiss.getAudienceTagMap().get(Short.parseShort("0"));//ios和imei抽样后数量的和
+		int audiSum=ai1.getAudiSum()+ai2.getAudiSum();//当天ai1和ai2库中人数的和
+//		float rate=new BigDecimal((iosimeiAudiSum)/((float)1.0*iosimeiSamSum)).setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();//抽样前基数的和/抽样后数量的和
+		Map<String,Object> tagMap=asts.getMatchTagMap(audiSum,mergemap);//将所有标签分类
+		
+		//乘以比例后，就是抽样前的总数，因此直接将audiSum作为样本数传入即可
+		asts.initRate(audiSum,tagMap);
+//		asts.multiRate(rate,tagMap);
+		return put2Map(tagMap);
+		
+	}
+	/**
+	 * 求ai1和ai2和ai3中符合tagStr的数据数量和
+	 * @param ai1
+	 * @param ai2
+	 * @param tagStr
+	 * @return
+	 */
+	public Map<String,Object> getMobileMatchData(AudienceInterface ai1,AudienceInterface ai2,AudienceInterface ai3,String tagStr){
+
+//		AudienceIosStatsServ aiosss=new AudienceIosStatsServ();
+//		AudienceImeiStatsServ aimeiss=new AudienceImeiStatsServ();
+		if(isNotNull(ai1)==null){
+			return this.getAppMatchData(ai2,ai3,tagStr);
+		}
+		if(isNotNull(ai2)==null){
+			return this.getAppMatchData(ai1,ai3,tagStr);
+		}
+		if(isNotNull(ai3)==null){
+			return this.getAppMatchData(ai1,ai2,tagStr);
+		}
+		Map<String,int[]> map1=asts.countAudiences2(ai1.getAudienceTagSum(),ai1.getAudienceTagList(),ai1.getAudienceTag(),ai1.getAudienceTagMap(),tagStr);//统计符合条件的人数，并统计每个标签的数量
+		Map<String,int[]> map2=asts.countAudiences2(ai2.getAudienceTagSum(),ai2.getAudienceTagList(),ai2.getAudienceTag(),ai2.getAudienceTagMap(),tagStr);//统计符合条件的人数，并统计每个标签的数量
+		Map<String,int[]> temp_mergemap = merge(map1,map2,ai1.getRate(),ai2.getRate());//合并两个中间结果
+		Map<String,int[]> map3=asts.countAudiences2(ai3.getAudienceTagSum(),ai3.getAudienceTagList(),ai3.getAudienceTag(),ai3.getAudienceTagMap(),tagStr);//统计符合条件的人数，并统计每个标签的数量
+		Map<String,int[]> mergemap = merge(temp_mergemap,map3,1.0f,ai3.getRate());//合并两个中间结果
+		
+//		int iosimeiSamSum=aiosss.getAudienceTagMap().get(Short.parseShort("0"))+aimeiss.getAudienceTagMap().get(Short.parseShort("0"));//ios和imei抽样后数量的和
+		int audiSum=ai1.getAudiSum()+ai2.getAudiSum()+ai3.getAudiSum();//当天ai1和ai2和ai3库中人数的和
+//		float rate=new BigDecimal((iosimeiAudiSum)/((float)1.0*iosimeiSamSum)).setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();//抽样前基数的和/抽样后数量的和
+		Map<String,Object> tagMap=asts.getMatchTagMap(audiSum,mergemap);//将所有标签分类
+		
+		//乘以比例后，就是抽样前的总数，因此直接将audiSum作为样本数传入即可
+		asts.initRate(audiSum,tagMap);
+//		asts.multiRate(rate,tagMap);
+		return put2Map(tagMap);
+		
+	}
 	/**
 	 * 整理符合标签的人群标签数据，并放入map中，返回
 	 */
@@ -148,23 +201,67 @@ public class AudienceStatisticController {
 	}
 	/**
 	 * 获取符合条件tagStr和类型type的人数和总基数
-	 * type : PC , IOS , Imei , App
+	 * type : PC , IOS , Imei , App, Moweb, Mobile
 	 */
 	public AudienceNum getMatchNum(String tagStr,String type){
-		if("PC".equalsIgnoreCase(type)){
-			return this.matchNum(new AudienceStatisticService(),tagStr);
-		}else if("IOS".equalsIgnoreCase(type)){
-			return this.matchNum(new AudienceIosStatsServ(),tagStr);
-		}else if("Imei".equalsIgnoreCase(type)){
-			return this.matchNum(new AudienceImeiStatsServ(),tagStr);
-		}else if("App".equalsIgnoreCase(type)){
-			return this.appMatchNum(tagStr);
-		}else{
-			return null;
+		try{
+			if("PC".equalsIgnoreCase(type)){
+				return this.matchNum(new AudienceStatisticService(),tagStr);
+			}else if("IOS".equalsIgnoreCase(type)){
+				return this.matchNum(new AudienceIosStatsServ(),tagStr);
+			}else if("Imei".equalsIgnoreCase(type)){
+				return this.matchNum(new AudienceImeiStatsServ(),tagStr);
+			}else if("App".equalsIgnoreCase(type)){
+				AudienceNum an1=this.matchNum(new AudienceIosStatsServ(),tagStr);
+				AudienceNum an2=this.matchNum(new AudienceImeiStatsServ(),tagStr);
+				return this.numberMerge(an1, an2);
+			}else if("Moweb".equalsIgnoreCase(type)){
+				return this.matchNum(new AudienceMobileWebServ(),tagStr);
+			}else if("Mobile".equalsIgnoreCase(type)){
+//				return this.appMatchNum(tagStr);
+				AudienceNum an1=this.matchNum(new AudienceIosStatsServ(),tagStr);
+				AudienceNum an2=this.matchNum(new AudienceImeiStatsServ(),tagStr);
+				AudienceNum an3=this.matchNum(new AudienceMobileWebServ(),tagStr);
+				return this.numberMerge(this.numberMerge(an1, an2), an3);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
 		}
+		return null;
 	}
+	
 	/**
-	 * 得到匹配tagStr条件的人数和总基数
+	 * 获取符合条件tagStr和类型type的人数和总基数(总库人数和总库基数)
+	 * type : PC , IOS , Imei , App, Moweb, Mobile
+	 */
+	public AudienceNum getLibMatchNum(String tagStr,String type){
+		try{
+			if("PC".equalsIgnoreCase(type)){
+				return this.libMatchNum(new AudienceStatisticService(), tagStr);
+			}else if("IOS".equalsIgnoreCase(type)){
+				return this.libMatchNum(new AudienceIosStatsServ(), tagStr);
+			}else if("Imei".equalsIgnoreCase(type)){
+				return this.libMatchNum(new AudienceImeiStatsServ(), tagStr);
+			}else if("App".equalsIgnoreCase(type)){
+				AudienceNum an1=this.libMatchNum(new AudienceIosStatsServ(),tagStr);
+				AudienceNum an2=this.libMatchNum(new AudienceImeiStatsServ(),tagStr);
+				return this.numberMerge(an1, an2);
+			}else if("Moweb".equalsIgnoreCase(type)){
+				return this.libMatchNum(new AudienceMobileWebServ(), tagStr);
+			}else if("Mobile".equalsIgnoreCase(type)){
+				AudienceNum an1=this.libMatchNum(new AudienceIosStatsServ(),tagStr);
+				AudienceNum an2=this.libMatchNum(new AudienceImeiStatsServ(),tagStr);
+				AudienceNum an3=this.libMatchNum(new AudienceMobileWebServ(),tagStr);
+				return this.numberMerge(this.numberMerge(an1, an2), an3);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 得到抽样库中，ai满足tagStr条件的人数和
 	 * 
 	 */
 	private AudienceNum matchNum(AudienceInterface ai,String tagStr){
@@ -174,37 +271,7 @@ public class AudienceStatisticController {
 		return arr;
 	}
 	/**
-	 * 得到匹配tagStr条件的app端人数和总基数
-	 * 
-	 */
-	private AudienceNum appMatchNum(String tagStr){
-		AudienceNum ios=matchNum(new AudienceIosStatsServ(), tagStr);
-		AudienceNum imei=matchNum(new AudienceImeiStatsServ(), tagStr);
-		AudienceNum app=new AudienceNum();
-		app.matchNum=ios.matchNum+imei.matchNum;
-		app.libNum=ios.libNum+imei.libNum;
-		return app;
-	}
-	
-	/**
-	 * 获取符合条件tagStr和类型type的人数和总基数(总库人数和总库基数)
-	 * type : PC , IOS , Imei , App
-	 */
-	public AudienceNum getLibMatchNum(String tagStr,String type){
-		if("PC".equalsIgnoreCase(type)){
-			return this.libMatchNum(new AudienceStatisticService(), tagStr);
-		}else if("IOS".equalsIgnoreCase(type)){
-			return this.libMatchNum(new AudienceIosStatsServ(), tagStr);
-		}else if("Imei".equalsIgnoreCase(type)){
-			return this.libMatchNum(new AudienceImeiStatsServ(), tagStr);
-		}else if("App".equalsIgnoreCase(type)){
-			return this.appLibMatchNum(tagStr);
-		}else{
-			return null;
-		}
-	}
-	/**
-	 * 得到匹配tagStr条件的总库中人数和总库基数
+	 * 得到总库中，ai匹配tagStr条件的人数和总库基数
 	 * 
 	 */
 	private AudienceNum libMatchNum(AudienceInterface ai,String tagStr){
@@ -217,16 +284,14 @@ public class AudienceStatisticController {
 		return newAn;
 	}
 	/**
-	 * 得到匹配tagStr条件的app端总库中人数和总库基数
+	 * 得到ai1、ai2的人数和，以及ai1、ai2总数和
 	 * 
 	 */
-	private AudienceNum appLibMatchNum(String tagStr){
-		AudienceNum ios=libMatchNum(new AudienceIosStatsServ(), tagStr);
-		AudienceNum imei=libMatchNum(new AudienceImeiStatsServ(), tagStr);
-		AudienceNum app=new AudienceNum();
-		app.matchNum=ios.matchNum+imei.matchNum;
-		app.libNum=ios.libNum+imei.libNum;
-		return app;
+	private AudienceNum numberMerge(AudienceNum ai1, AudienceNum ai2){
+		AudienceNum an=new AudienceNum();
+		an.matchNum=ai1.matchNum+ai2.matchNum;
+		an.libNum=ai1.libNum+ai2.libNum;
+		return an;
 	}
 //	@SuppressWarnings("unchecked")
 //	public Map<String,Object> mergeIosImei(Map<String,Object> ios,Map<String,Object> imei,float rate){

@@ -20,8 +20,7 @@ public class AudienceStatisticService  implements AudienceInterface {
 	private static int audiSum;//cookieid对应一天数据的总数
 	
 	private static float libRate;// libNum/一天的cookieid数量 比值
-	private static long libNum=774065014;//cookie id 人群库中的人数
-	
+	private static long libNum;//cookie id 人群库中的人数
 //	private static String tagSumPath = "/data/countTagSum.txt";//标签数量统计文件
 //	private static String audiIdFlagPath = "/data/audienceCookieFlag.txt";//人群id和标签文件
 //	private static String ratePath = "/data/rate";//比例和基数文件

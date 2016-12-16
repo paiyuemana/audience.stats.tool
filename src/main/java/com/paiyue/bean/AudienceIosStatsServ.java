@@ -20,7 +20,7 @@ public class AudienceIosStatsServ implements AudienceInterface {
 	private static int audiSum;//ios对应一天数据的总数
 	
 	private static float libRate;// libNum/一天的cookieid数量 比值
-	private static long libNum=48697751;//ios 总人群库中人数
+	private static long libNum=37914313;//ios 总人群库中人数
 	
 //	private static String tagSumPath = "/iosdata/countTagSum.txt";//标签数量统计文件
 //	private static String audiIdFlagPath = "/iosdata/audienceCookieFlag.txt";//人群id和标签文件

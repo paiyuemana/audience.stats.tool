@@ -25,8 +25,8 @@ import com.paiyue.bean.AudienceStatisticModel;
 
 public class AudienceStatsToolServ {
 	//根目录
-	private static String parentPath=System.getProperty("audi.stats.dir");
-	
+//	private static String parentPath=System.getProperty("audi.stats.dir");
+	private static String parentPath;
 	private static List<AudienceCategory> audienceList ;//储存策略编辑页面需要的人群定向所使用的标签
 
 	public void setAudienceCategoryList() throws NullPointerException{//加载人群标签表
@@ -44,7 +44,7 @@ public class AudienceStatsToolServ {
 		BufferedReader br=null;
 		String line="";
 		try {
-//			br=new BufferedReader(new FileReader(this.getParentPath()+"/audimesg/audimesg.txt"));
+//			br=new BufferedReader(new FileReader(parentPath+"/audimesg/audimesg.txt"));
 //			br=new BufferedReader(new FileReader("/home/paiyue/mana/manapy/audience/audimesg/audimesg.txt"));
 			br=new BufferedReader(new FileReader("/home/dataapi/tomcat-8500/audi_stats_dir/audimesg/audimesg.txt"));
 			while((line=br.readLine())!=null){
@@ -487,7 +487,7 @@ public class AudienceStatsToolServ {
 		for(int i=0;i<tagOrlen;i++){
 			String[] tagAnd=tagOr[i].split("\\|");
 			int tagAndlen=tagAnd.length;
-			long[] bitMapOr=new long[len];//进行与操作的数组
+			long[] bitMapOr=new long[len];//进行或操作的数组
 			for(int j=0;j<tagAndlen;j++){
 				short tagId=Short.parseShort(tagAnd[j]);
 				if(map.containsKey(tagId)){

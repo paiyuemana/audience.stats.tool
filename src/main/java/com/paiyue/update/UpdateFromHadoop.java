@@ -26,13 +26,13 @@ import com.paiyue.bean.AudienceCategory;
 import com.paiyue.bean.AudienceImeiStatsServ;
 import com.paiyue.bean.AudienceInterface;
 import com.paiyue.bean.AudienceIosStatsServ;
+import com.paiyue.bean.AudienceMobileWebServ;
 import com.paiyue.bean.AudienceNum;
 import com.paiyue.bean.AudienceStatisticService;
 
 public class UpdateFromHadoop {
 	
 	private static Configuration configuration = new Configuration();
-	
 	static {
 		System.setProperty("HADOOP_USER_NAME", "na.ma");
 		configuration.set("dfs.block.size", String.valueOf(256 * 1024 * 1024));
@@ -52,14 +52,14 @@ public class UpdateFromHadoop {
 //		    );
 	}
 //	private static String parentPath=System.getProperty("audi.stats.dir");
-	
+	private String cookie_libnum = "791037826";//pc site 和 移动web的cookie总数，即派悦库中人群数量
 	private String siteAppSum_path="/user/na.ma/siteAppSmapleCount";
 	private String oldSiteApp_path="/user/na.ma/oldSiteAppSmapleCount";
 	/**
 	 * 更新WEB,APP数据
 	 * @return
 	 */
-	public boolean update(){
+	public void update() throws Exception{
 
 		//site和app数据的matched和day人群数量
 		
@@ -77,10 +77,10 @@ public class UpdateFromHadoop {
 			updateData(hdfs,"PC");
 			updateData(hdfs,"IOS");
 			updateData(hdfs,"Imei");
-			return true;
+			updateData(hdfs,"Moweb");//移动web
 			
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			throw new Exception("数据更新失败，异常信息："+e.toString());
 		}finally{
 			if(hdfs!=null){
 				try {
@@ -145,9 +145,11 @@ public class UpdateFromHadoop {
 				obj=new AudienceImeiStatsServ();
 			}else if("PC".equals(flag)){
 				obj=new AudienceStatisticService();
+			}else if("Moweb".equals(flag)){
+				obj=new AudienceMobileWebServ();
 			}
 			if(obj==null){
-				throw new RuntimeException(flag+"参数类型不符合要求！参数类型：IOS , Imei , PC");
+				throw new RuntimeException(flag+"参数类型不符合要求！参数类型：IOS , Imei , PC, Moweb");
 			}
 			if(!isOrNotSuccess(obj.getIdMatched_path(),hdfs)||!isOrNotSuccess(obj.getIdTagSum_path(),hdfs)
 					||!isOrNotSuccess(siteAppSum_path,hdfs)){
@@ -208,15 +210,27 @@ public class UpdateFromHadoop {
 				ass.setAudienceTag(upBitMap);//audienceTag cookieid对应的数字及数字对应的标签
 				ass.setRate(new BigDecimal(idDay_count).divide(new BigDecimal(idMatched_count), 2, BigDecimal.ROUND_DOWN).floatValue());
 				ass.setAudiSum(Integer.parseInt(idDay_count));
+				if((ass instanceof AudienceMobileWebServ)||(ass instanceof AudienceStatisticService)){
+					String cookieday_count=site_app_sample.get("day-cookieid");//pc site一天cookie的数量
+					String mowebday_count=site_app_sample.get("day-mowebcookie");//移动web一天cookie的数量
+					//比例=当前传入类型(day-cookieid/day-mowebcookie)的当天cookie数量/当天cookie总量
+					float assInLibRate=new BigDecimal(idDay_count).divide(new BigDecimal(cookieday_count).add(new BigDecimal(mowebday_count)), 2, BigDecimal.ROUND_HALF_UP).floatValue();
+					//当前传入类型在派悦库中总量=派悦库中总cookie量×当前传入类型pc/移动web所占当天库量的占比
+					ass.setLibNum(new BigDecimal(this.cookie_libnum).multiply(new BigDecimal(assInLibRate)).setScale(0, BigDecimal.ROUND_HALF_UP).longValue());
+				}
 				ass.setLibRate(new BigDecimal(String.valueOf(ass.getLibNum()/Float.parseFloat(idDay_count))).setScale(2, BigDecimal.ROUND_DOWN).floatValue());				
-				
 			}else{
 				throw new RuntimeException("当前最新数据不满足更新条件，更新失败!");
 			}
 		}
 		public static void main(String args[]){
 		UpdateFromHadoop ufh=new UpdateFromHadoop();
-		ufh.update();
+		try {
+			ufh.update();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		//http://10.1.0.40:8500/audienceTool?tagStr=30003&driver=PC
 		
 		String tagStr = "30003";

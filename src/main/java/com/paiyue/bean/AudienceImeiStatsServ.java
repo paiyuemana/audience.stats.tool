@@ -20,7 +20,7 @@ public class AudienceImeiStatsServ implements AudienceInterface {
 	private static int audiSum;//imei对应一天数据的总数
 	
 	private static float libRate;// libNum/一天的cookieid数量 比值
-	private static long libNum=42567661;//非ios总人群库中的人数
+	private static long libNum=110399360;//非ios总人群库中的人数
 	
 //	private static String tagSumPath = "/imeidata/countTagSum.txt";//标签数量统计文件
 //	private static String audiIdFlagPath = "/imeidata/audienceCookieFlag.txt";//人群id和标签文件

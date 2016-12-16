@@ -97,7 +97,6 @@
                         </goals>
                         <configuration>
                             <outputDirectory>
-                                ${project.build.directory}
                             </outputDirectory>
                         </configuration>
                     </execution>

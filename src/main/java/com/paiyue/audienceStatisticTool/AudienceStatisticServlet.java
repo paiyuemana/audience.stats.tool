@@ -19,52 +19,31 @@ import com.paiyue.update.UpdateFromHadoop;
  * Servlet implementation class AudienceStatisticServlet
  */
 
-public class AudienceStatisticServlet extends HttpServlet {
+public class AudienceStatisticServlet extends HttpServlet{
 	private static final long serialVersionUID = 1L;
        
     /**
      * @see HttpServlet#HttpServlet()
      */
-    public AudienceStatisticServlet() {
+    public AudienceStatisticServlet() throws ServletException{
         super();
     }
-    
     /**
-     * 启动时候加载标签库和人群库
+     * 初始化调用
      */
-    static{
-    		
-//    		AudienceStatsToolServ asts=new AudienceStatsToolServ();
-//    		asts.setAudienceCategoryList();//加载人群标签表
-//	    	if(new File(asts.getParentPath()+"/data").exists()&&new File(asts.getParentPath()+"/iosdata").exists()
-//	    			&&new File(asts.getParentPath()+"/imeidata").exists()){
-//	    		
-//	    		System.out.println("加载cookieid库");
-//		    	asts.loadAudienceTagArr(new AudienceStatisticService());
-//		    	System.out.println("加载imei库");
-//		    	asts.loadAudienceTagArr(new AudienceImeiStatsServ());
-//		    	System.out.println("加载ios库");
-//		    	asts.loadAudienceTagArr(new AudienceIosStatsServ());
-//		    	
-//	    	}else{
-//	    		if(!new Update().update()){
-//	    			throw new Exception("初始更新失败！");
-//	    		}
-//	    	}
-//		
+    public void init() throws ServletException{
     	long start1=System.currentTimeMillis();
-    	Long beforeMemory1 = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory(); 
     	UpdateFromHadoop ufh=new UpdateFromHadoop();
-		ufh.update();
-		Long beforeMemory2 = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+		try {
+			ufh.update();
+			//开启定时器
+    		Scheduler s=new Scheduler();
+    		s.taskSchedule();
+		} catch (Exception e) {
+			throw new ServletException("程序启动失败，数据加载异常！"+e.toString());
+		}
 		long end1=System.currentTimeMillis();
-		System.out.println("人群数据 内存使用:" + (double)(beforeMemory2 - beforeMemory1) / 1024.000 / 1024.000 + "MB"); 
 		System.out.println("用时:"+(end1-start1)+"ms");
-	
-		//开启定时器
-		Scheduler s=new Scheduler();
-		s.taskSchedule();	
-    		
 	}
     
 	/**
